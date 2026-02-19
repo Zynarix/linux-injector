@@ -1,0 +1,1 @@
+Simple kernel injector made for the newest kernels. It is not good just existing and making some work. I will not update it un future but you can always DM me in discord, telegram or session and ask for help. Curently work in progress
