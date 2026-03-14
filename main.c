@@ -1,4 +1,6 @@
-#include "linux/sysfs.h"
+#include <linux/sched/mm.h>
+#include <linux/mm.h>
+#include <linux/sysfs.h>
 #include <asm-generic/errno-base.h>
 #include <asm-generic/fcntl.h>
 #include <linux/stat.h>
@@ -18,8 +20,9 @@
 #include <linux/uaccess.h>
 #include <linux/vmalloc.h>
 #include <linux/cleanup.h>
+DEFINE_FREE(vfree, void *, if (_T) vfree(_T));
 
-const char* prc_name = "hl2_linux";
+const char* prc_name = "game_process";
 
 bool DEBUG_MODE = true;
 
@@ -27,8 +30,26 @@ static int __init entry(void) {
 
     // hiding module from EAC
     if (!DEBUG_MODE) {
-        list_del(&THIS_MODULE->list);
+        // hides from lsmod, /proc/modules
+        list_del_init(&THIS_MODULE->list);
+
+        // hides from /sys/module/
         kobject_del(&THIS_MODULE->mkobj.kobj);
+
+        // Remove section attributes and notes to prevent sysfs scanners from finding remnants
+        if (THIS_MODULE->sect_attrs) {
+            sysfs_remove_group(&THIS_MODULE->mkobj.kobj, THIS_MODULE->sect_attrs);
+            kfree(THIS_MODULE->sect_attrs);
+            THIS_MODULE->sect_attrs = NULL;
+        }
+
+        if (THIS_MODULE->notes_attrs) {
+            sysfs_remove_group(&THIS_MODULE->mkobj.kobj, THIS_MODULE->notes_attrs);
+            kfree(THIS_MODULE->notes_attrs);
+            THIS_MODULE->notes_attrs = NULL;
+        }
+
+        //THIS_MODULE->mkobj.kobj.state_initialized = 0; // Dangerous on some kernels, optional
     }
 
     //prepare start
@@ -94,11 +115,10 @@ static int __init entry(void) {
     }// header + sections header
 
     vfree(buf);
-    return -EPERM;
+    return 0;
 }
 
-static void __exit __maybe_unused exit(void) {
-    void* some = NULL;
+static void __exit exit(void) {
 }
 
 MODULE_LICENSE("GPL");
